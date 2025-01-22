@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      body {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
+        margin: 0;
+        background: #94a3b8;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        overflow: hidden;
+        font-family: sans-serif;
+      }
+
+      canvas {
+        display: block;
+        background-image: url('/img/repeated-square-dark.png');
+        position: relative;
+      }
+
+      .leaderboard {
+        position: absolute;
+        top: 0;
+        left: 0;
+        margin: 16px;
+        color: white;
+        padding: 8px;
+        font-family: sans-serif;
+        font-size: 14px;
+        user-select: none;
+        background: rgba(0, 0, 0, 0.5);
+        border-radius: 8px;
+        max-width: 200px;
+        z-index: 10;
+      }
+
+      .leaderboard h3 {
+        font-size: 16px;
+        margin: 0px;
+        margin-bottom: 8px;
+        text-align: center;
+      }
+
+      .leaderboard #playerLabels {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .overlay {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        display: flex;
+        gap: 100px;
+        background: rgba(0, 0, 0, 0.7);
+        padding: 20px;
+        border-radius: 10px;
+        color: white;
+      }
+
+      .section {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        max-width: 250px;
+        width: 100%;
+      }
+
+      .section h3 {
+        margin-bottom: 16px;
+        font-size: 18px;
+        text-align: center;
+      }
+
+      .section input,
+      .section select {
+        width: 100%;
+        padding: 12px;
+        margin-bottom: 16px;
+        border-radius: 6px;
+        border: none;
+        background: #475569;
+        color: #cbd5e1;
+        font-size: 16px;
+      }
+
+      .section input::placeholder,
+      .section select option {
+        color: #94a3b8;
+      }
+
+      .section input:focus,
+      .section select:focus {
+        outline: none;
+        background: #354455;
+      }
+
+      .section button {
+        padding: 12px 24px;
+        border-radius: 6px;
+        border: none;
+        background: #06b6d4;
+        color: white;
+        font-size: 16px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+        width: 100%;
+      }
+
+      .section button:hover {
+        background: #0284c7;
+      }
+
+      #usernameForm {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      #usernameInput {
+        margin-bottom: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <div style="position: relative; width: 1336px; height: 768px">
+      <!-- Leaderboard -->
+      <div class="leaderboard">
+        <h3>Leaderboard</h3>
+        <div id="playerLabels"></div>
+      </div>
+
+      <canvas width="1336" height="768"></canvas>
+    </div>
+
+    <!-- Overlay: Sekcje wyśrodkowane na canvasie -->
+    <div class="overlay">
+      <!-- Sekcja lewa: Tworzenie pokoju -->
+      <div class="section">
+        <h3>Stwórz Pokój</h3>
+        <input
+          id="roomNameInput"
+          type="text"
+          placeholder="Nazwa pokoju"
+        />
+        <button id="createRoomButton">Stwórz</button>
+      </div>
+
+      <!-- Sekcja środkowa: Wpisanie nazwy użytkownika -->
+      <div class="section">
+        <h3>Wprowadź Nazwę</h3>
+        <form id="usernameForm">
+          <input
+            id="usernameInput"
+            type="text"
+            placeholder="Username"
+          />
+          <button id="startButton" type="submit">Start!</button>
+        </form>
+      </div>
+
+      <!-- Sekcja prawa: Lista rozwijana z pokojami -->
+      <div class="section">
+        <h3>Wybierz Pokój</h3>
+        <select id="roomSelect"></select>
+      </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.10.2/gsap.min.js"></script>
+    <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+    <script src="./js/classes/Enemy.js"></script>
+    <script src="./js/classes/Player.js"></script>
+    <script src="./js/classes/Particle.js"></script>
+    <script src="./js/classes/Projectile.js"></script>
+    <script src="./js/frontend.js"></script>
+    <script src="./js/eventListeners.js"></script>
+  </body>
+</html>

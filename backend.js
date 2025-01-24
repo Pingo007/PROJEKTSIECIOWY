@@ -367,8 +367,8 @@ server.listen(port, () => {
 
 function generateMedkit(room){
   while(true){
-    randomX = Math.random() * WIDTH,
-    randomY = Math.random() * HEIGHT
+    randomX = 200 + Math.random() * (WIDTH - 400)
+    randomY = 200 + Math.random() * (HEIGHT - 400)
     if(!checkPlayerWallCollision({randomX,randomY},walls)) break
   }
   backEndMedkits[room] = {

@@ -162,6 +162,7 @@ io.on('connection', (socket) => {
       username,
       room,
       health: BASE_HEALTH,
+      maxHealth: BASE_HEALTH,
       radius: RADIUS,
       ammo: MAX_AMMO,
       maxAmmo: MAX_AMMO,

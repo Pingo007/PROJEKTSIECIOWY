@@ -94,6 +94,7 @@ socket.on('updatePlayers', (backEndPlayers) => {
         username: backEndPlayer.username,
         room: backEndPlayer.room,
         health: backEndPlayer.health,
+        maxHealth: backEndPlayer.maxHealth,
         ammo: backEndPlayer.ammo,
         maxAmmo: backEndPlayer.maxAmmo
       });

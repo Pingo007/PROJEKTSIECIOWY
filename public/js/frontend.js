@@ -7,7 +7,7 @@ const socket = io();
 
 const scoreEl = document.querySelector('#scoreEl');
 
-const devicePixelRatio = window.devicePixelRatio || 1;
+const devicePixelRatio = 1;
 
 canvas.width = WIDTH * devicePixelRatio;
 canvas.height = HEIGHT * devicePixelRatio;
@@ -19,7 +19,34 @@ const y = canvas.height / 2;
 
 const frontEndPlayers = {};
 const frontEndProjectiles = {};
+const frontEndMedkits = {};
 let walls = [];
+
+socket.on('updateMedkits', (backEndMedkits) =>{
+  for (const id in backEndMedkits){
+    console.log(frontEndPlayers[socket.id]?.room)
+    console.log(backEndMedkits[id].room)
+    if(frontEndPlayers[socket.id]?.room !== backEndMedkits[id].room) continue
+
+    if(!frontEndMedkits[id]){
+      frontEndMedkits[id] = new Medkit({
+        x: backEndMedkits[id].x,
+        y: backEndMedkits[id].y,
+        radius: backEndMedkits[id].radius,
+        room: backEndMedkits[id].room
+      })
+    }else{
+      frontEndMedkits[id].x = backEndMedkits[id].x;
+      frontEndMedkits[id].y = backEndMedkits[id].y;
+    }
+
+  }
+  for (const frontEndMedkitsID in frontEndMedkits) {
+    if (!backEndMedkits[frontEndMedkitsID]) {
+      delete frontEndMedkits[frontEndMedkitsID];
+    }
+  }
+});
 
 socket.on('updateWalls', (backEndWalls) => {
   walls = backEndWalls;
@@ -196,6 +223,10 @@ function animate(time) {
     frontEndProjectiles[id].draw();
   }
 
+  for (const id in frontEndMedkits){
+    frontEndMedkits[id].draw();
+  }
+
   animationId = requestAnimationFrame(animate);
 }
 
@@ -238,6 +269,8 @@ window.addEventListener('keyup', (event) => {
       break;
   }
 });
+
+
 
 document.querySelector('#usernameForm').addEventListener('submit', (event) => {
   event.preventDefault();

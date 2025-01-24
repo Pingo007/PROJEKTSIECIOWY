@@ -35,8 +35,9 @@ const backEndPlayers = {};
 const backEndProjectiles = {};
 const backEndRooms = {};
 const roomActivityTimers = {};
+const backEndMedkits = {};
 
-MAX_AMMO = 10;
+MAX_AMMO = 6;
 const BASE_HEALTH = 5;
 const WIDTH = 1336;
 const HEIGHT = 768;
@@ -144,6 +145,14 @@ io.on('connection', (socket) => {
       SpawnX = WIDTH - Math.random() * 150;
     }
 
+    if(Object.entries(backEndPlayers).length === 0) generateMedkit(room)
+
+    for(const id in backEndPlayers){
+      if(backEndPlayers[id].room !== room){
+        generateMedkit(room)
+      }
+    }
+
     backEndPlayers[socket.id] = {
       x: SpawnX,
       y: HEIGHT * Math.random(),
@@ -158,6 +167,9 @@ io.on('connection', (socket) => {
       maxAmmo: MAX_AMMO,
       isReloading: false
     };
+    
+    io.emit('updatePlayers', backEndPlayers)
+    io.emit('updateMedkits',backEndMedkits)
 
     if (roomActivityTimers[room]) {
       clearTimeout(roomActivityTimers[room]);
@@ -244,7 +256,28 @@ io.on('connection', (socket) => {
   });
 });
 
+let randomX
+let randomY
+
 setInterval(() => {
+  for (const id in backEndPlayers){
+    if(!backEndMedkits[backEndPlayers[id].room]) continue
+
+    const DISTANCE = Math.hypot(
+      backEndPlayers[id].x - backEndMedkits[backEndPlayers[id].room].x,
+      backEndPlayers[id].y - backEndMedkits[backEndPlayers[id].room].y
+    );
+    if(DISTANCE < backEndPlayers[id].radius + backEndMedkits[backEndPlayers[id].room].radius ){
+      backEndPlayers[id].health = BASE_HEALTH
+      delete backEndMedkits[backEndPlayers[id].room]
+      io.emit('updateMedkits',backEndMedkits)
+
+      setTimeout(()=>{
+        generateMedkit(backEndPlayers[id].room)
+      },5000)
+    }
+  }
+
   for (const id in backEndProjectiles) {
     backEndProjectiles[id].x += backEndProjectiles[id].velocity.x;
     backEndProjectiles[id].y += backEndProjectiles[id].velocity.y;
@@ -307,3 +340,18 @@ setInterval(() => {
 server.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
 });
+
+function generateMedkit(room){
+  while(true){
+    randomX = Math.random() * WIDTH,
+    randomY = Math.random() * HEIGHT
+    if(!checkPlayerWallCollision({randomX,randomY},walls)) break
+  }
+  backEndMedkits[room] = {
+    x: randomX,
+    y: randomY,
+    radius: 20,
+    room: room
+  }
+  io.emit('updateMedkits',backEndMedkits)
+}

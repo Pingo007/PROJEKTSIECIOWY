@@ -134,13 +134,12 @@ io.on('connection', (socket) => {
       backEndPlayers[socket.id].ammo--
 
       setTimeout(()=>{
-        console.log('timeout')
         backEndPlayers[socket.id].canShoot = true;
       },90)
     }
 
     backEndPlayers[socket.id].canShoot = false
-    console.log(backEndPlayers[socket.id])
+    
     if(backEndPlayers[socket.id].ammo<=0 && backEndPlayers[socket.id].isReloading == false){ 
       //reload
       io.to(socket.id).emit('play_sound', { sound: 'reload' });

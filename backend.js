@@ -108,8 +108,12 @@ io.on('connection', (socket) => {
       y: Math.sin(angle) * 35,
     };
 
-    if(backEndPlayers[socket.id].ammo>0){
-      io.to(socket.id).emit('play_sound', { sound: 'shoot' });
+    if(backEndPlayers[socket.id].ammo>0){  
+      for(id in backEndPlayers){
+        if(backEndPlayers[id].room == backEndPlayers[socket.id].room){
+          io.to(id).emit('play_sound', { sound: 'shoot' });
+        }
+      }
       backEndProjectiles[projectileId] = {
         x,
         y,

@@ -1,7 +1,7 @@
 const canvas = document.querySelector('canvas');
 const c = canvas.getContext('2d');
-const WIDTH = 1336;
-const HEIGHT = 768;
+const WIDTH = 1600;
+const HEIGHT = 900;
 
 const socket = io();
 
@@ -62,7 +62,7 @@ socket.on('updateProjectiles', (backEndProjectiles) => {
       frontEndProjectiles[id] = new Projectile({
         x: backEndProjectile.x,
         y: backEndProjectile.y,
-        radius: 5,
+        radius: backEndProjectile.radius,
         color: frontEndPlayers[backEndProjectile.playerId]?.color,
         velocity: backEndProjectile.velocity,
       });

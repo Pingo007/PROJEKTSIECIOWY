@@ -23,12 +23,18 @@ class Wall {
 }
 
 const walls = [
-  new Wall({ x: 200, y: 150, width: 40, height: 150 }),
-  new Wall({ x: 200, y: 150, width: 150, height: 40 }),
-  new Wall({ x: 550, y: 250, width: 100, height: 100 }),
-  new Wall({ x: 250, y: 500, width: 400, height: 40 }),
-  new Wall({ x: 800, y: 600, width: 250, height: 40 }),
-  new Wall({ x: 1010, y: 200, width: 40, height: 400 }),
+  new Wall({ x: 200, y: 150, width: 50, height: 150 }),
+  new Wall({ x: 200, y: 450, width: 50, height: 200 }),
+  new Wall({ x: 200, y: 150, width: 150, height: 50 }),
+  new Wall({ x: 550, y: 250, width: 125, height: 125 }),
+  new Wall({ x: 400, y: 550, width: 250, height: 50 }),
+  new Wall({ x: 800, y: 700, width: 200, height: 50 }),
+  new Wall({ x: 950, y: 450, width: 50, height: 250 }),
+  new Wall({ x: 750, y: 0, width: 50, height: 100 }),
+  new Wall({ x: 400, y: 750, width: 50, height: 400 }),
+  new Wall({ x: 1300, y: 300, width: 50, height: 200 }),
+  new Wall({ x: 1150, y: 600, width: 150, height: 50 }),
+  new Wall({ x: 1000, y: 150, width: 125, height: 125 }),
 ];
 
 const backEndPlayers = {};
@@ -39,11 +45,11 @@ const backEndMedkits = {};
 
 MAX_AMMO = 6;
 const BASE_HEALTH = 5;
-const WIDTH = 1336;
-const HEIGHT = 768;
+const WIDTH = 1600;
+const HEIGHT = 900 ;
 const SPEED = 5;
 const RADIUS = 25;
-const PROJECTILE_RADIUS = 5;
+const PROJECTILE_RADIUS = 6;
 let projectileId = 0;
 
 function checkPlayerWallCollision(player, walls) {
@@ -102,11 +108,13 @@ io.on('connection', (socket) => {
   io.emit('updatePlayers', backEndPlayers);
 
   socket.on('shoot', ({ x, y, angle }) => {
+    if(!backEndPlayers[socket.id].canShoot) return
+
     projectileId++;
 
     const velocity = {
-      x: Math.cos(angle) * 35,
-      y: Math.sin(angle) * 35,
+      x: Math.cos(angle) * 34.99,
+      y: Math.sin(angle) * 34.99,
     };
 
     if(backEndPlayers[socket.id].ammo>0){  
@@ -121,16 +129,25 @@ io.on('connection', (socket) => {
         velocity,
         playerId: socket.id,
         room: backEndPlayers[socket.id].room,
+        radius: PROJECTILE_RADIUS
       };
       backEndPlayers[socket.id].ammo--
+
+      setTimeout(()=>{
+        console.log('timeout')
+        backEndPlayers[socket.id].canShoot = true;
+      },90)
     }
-    
+
+    backEndPlayers[socket.id].canShoot = false
+    console.log(backEndPlayers[socket.id])
     if(backEndPlayers[socket.id].ammo<=0 && backEndPlayers[socket.id].isReloading == false){ 
       //reload
       io.to(socket.id).emit('play_sound', { sound: 'reload' });
       setTimeout(() => {
         backEndPlayers[socket.id].ammo = MAX_AMMO; // Przeładuj amunicję
         backEndPlayers[socket.id].isReloading = false;
+        backEndPlayers[socket.id].canShoot = true;
       }, 500); // 500 milisekund = 0.5 sekundy
 
       backEndPlayers[socket.id].isReloading = true;
@@ -171,7 +188,8 @@ io.on('connection', (socket) => {
       radius: RADIUS,
       ammo: MAX_AMMO,
       maxAmmo: MAX_AMMO,
-      isReloading: false
+      isReloading: false,
+      canShoot: true
     };
     
     io.emit('updatePlayers', backEndPlayers)

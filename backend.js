@@ -146,12 +146,17 @@ io.on('connection', (socket) => {
     }
 
     if(Object.entries(backEndPlayers).length === 0) generateMedkit(room)
+    
+    let foundRoom = false;
 
     for(const id in backEndPlayers){
-      if(backEndPlayers[id].room !== room){
-        generateMedkit(room)
+      if(backEndPlayers[id].room === room){
+        foundRoom = true;
+        break;
       }
     }
+
+    if(!foundRoom) generateMedkit(room)
 
     backEndPlayers[socket.id] = {
       x: SpawnX,
@@ -274,7 +279,7 @@ setInterval(() => {
       io.emit('updateMedkits',backEndMedkits)
 
       setTimeout(()=>{
-        generateMedkit(backEndPlayers[id].room)
+        if(!backEndPlayers[id].room) generateMedkit(backEndPlayers[id].room)
       },5000)
     }
   }

@@ -279,7 +279,7 @@ setInterval(() => {
       io.emit('updateMedkits',backEndMedkits)
 
       setTimeout(()=>{
-        if(!backEndPlayers[id].room) generateMedkit(backEndPlayers[id].room)
+        if(backEndPlayers[id].room) generateMedkit(backEndPlayers[id].room)
       },5000)
     }
   }

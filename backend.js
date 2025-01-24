@@ -13,7 +13,6 @@ app.get('/', (req, res) => {
   res.sendFile(__dirname + '/index.html');
 });
 
-// Klasa Wall
 class Wall {
   constructor({ x, y, width, height }) {
     this.x = x;
@@ -23,7 +22,6 @@ class Wall {
   }
 }
 
-// Tworzenie ścian
 const walls = [
   new Wall({ x: 200, y: 150, width: 40, height: 150 }),
   new Wall({ x: 200, y: 150, width: 150, height: 40 }),
@@ -31,14 +29,15 @@ const walls = [
   new Wall({ x: 250, y: 500, width: 400, height: 40 }),
   new Wall({ x: 800, y: 600, width: 250, height: 40 }),
   new Wall({ x: 1010, y: 200, width: 40, height: 400 }),
-  // Dodaj więcej ścian według potrzeb
 ];
 
 const backEndPlayers = {};
 const backEndProjectiles = {};
 const backEndRooms = {};
+const roomActivityTimers = {};
 
-const BASE_HEALTH = 1;
+MAX_AMMO = 10;
+const BASE_HEALTH = 5;
 const WIDTH = 1336;
 const HEIGHT = 768;
 const SPEED = 5;
@@ -46,7 +45,6 @@ const RADIUS = 25;
 const PROJECTILE_RADIUS = 5;
 let projectileId = 0;
 
-// Funkcja sprawdzająca kolizję gracza ze ścianami
 function checkPlayerWallCollision(player, walls) {
   for (const wall of walls) {
     if (
@@ -55,13 +53,12 @@ function checkPlayerWallCollision(player, walls) {
       player.y - player.radius < wall.y + wall.height &&
       player.y + player.radius > wall.y
     ) {
-      return true; // Kolizja wykryta
+      return true;
     }
   }
   return false;
 }
 
-// Funkcja sprawdzająca kolizję pocisku ze ścianami
 function checkProjectileWallCollision(projectile, walls) {
   for (const wall of walls) {
     if (
@@ -70,7 +67,7 @@ function checkProjectileWallCollision(projectile, walls) {
       projectile.y - PROJECTILE_RADIUS < wall.y + wall.height &&
       projectile.y + PROJECTILE_RADIUS > wall.y
     ) {
-      return true; // Kolizja wykryta
+      return true;
     }
   }
   return false;
@@ -79,25 +76,30 @@ function checkProjectileWallCollision(projectile, walls) {
 io.on('connection', (socket) => {
   console.log('a user connected');
 
-  // Dodanie pokoju
   socket.on('addRoom', ({ roomName }) => {
     const roomId = `room${Object.keys(backEndRooms).length + 1}`;
     backEndRooms[roomId] = roomName;
+
+    roomActivityTimers[roomId] = setTimeout(() => {
+      const playersInRoom = Object.values(backEndPlayers).filter((player) => player.room === roomId);
+      if (playersInRoom.length === 0) {
+        delete backEndRooms[roomId];
+        delete roomActivityTimers[roomId];
+        io.emit('updateRooms', backEndRooms);
+        console.log(`Pokój ${roomName} (ID: ${roomId}) został usunięty z powodu nieaktywności.`);
+      }
+    }, 20000);
 
     io.emit('updateRooms', backEndRooms);
     console.log(`Pokój dodany: ${roomName} (ID: ${roomId})`);
   });
 
-  // Przesyłanie istniejących pokoi po połączeniu
   socket.emit('updateRooms', backEndRooms);
 
-  // Emitowanie ścian do klienta
   socket.emit('updateWalls', walls);
 
-  // Emitowanie graczy
   io.emit('updatePlayers', backEndPlayers);
 
-  // Obsługa strzelania
   socket.on('shoot', ({ x, y, angle }) => {
     projectileId++;
 
@@ -106,26 +108,38 @@ io.on('connection', (socket) => {
       y: Math.sin(angle) * 35,
     };
 
-    backEndProjectiles[projectileId] = {
-      x,
-      y,
-      velocity,
-      playerId: socket.id,
-      room: backEndPlayers[socket.id].room,
-    };
-  });
-  let SpawnX = 0 
-  // Inicjalizacja gry
-  socket.on('initGame', ({ username, width, height, room }) => {
-    //Lokalizacja
-    
-    if(Math.random() >= 0.5){
-      SpawnX = Math.random() * 150
-    }else
-    {
-      SpawnX = SpawnX = WIDTH - Math.random() * 150
+    if(backEndPlayers[socket.id].ammo>0){
+      io.to(socket.id).emit('play_sound', { sound: 'shoot' });
+      backEndProjectiles[projectileId] = {
+        x,
+        y,
+        velocity,
+        playerId: socket.id,
+        room: backEndPlayers[socket.id].room,
+      };
+      backEndPlayers[socket.id].ammo--
     }
     
+    if(backEndPlayers[socket.id].ammo<=0 && backEndPlayers[socket.id].isReloading == false){ 
+      //reload
+      io.to(socket.id).emit('play_sound', { sound: 'reload' });
+      setTimeout(() => {
+        backEndPlayers[socket.id].ammo = MAX_AMMO; // Przeładuj amunicję
+        backEndPlayers[socket.id].isReloading = false;
+      }, 500); // 500 milisekund = 0.5 sekundy
+
+      backEndPlayers[socket.id].isReloading = true;
+    }
+  });
+
+  let SpawnX = 0;
+  socket.on('initGame', ({ username, room }) => {
+    if (Math.random() >= 0.5) {
+      SpawnX = Math.random() * 150;
+    } else {
+      SpawnX = WIDTH - Math.random() * 150;
+    }
+
     backEndPlayers[socket.id] = {
       x: SpawnX,
       y: HEIGHT * Math.random(),
@@ -136,53 +150,82 @@ io.on('connection', (socket) => {
       room,
       health: BASE_HEALTH,
       radius: RADIUS,
+      ammo: MAX_AMMO,
+      maxAmmo: MAX_AMMO,
+      isReloading: false
     };
+
+    if (roomActivityTimers[room]) {
+      clearTimeout(roomActivityTimers[room]);
+    }
+
+    roomActivityTimers[room] = setTimeout(() => {
+      const playersInRoom = Object.values(backEndPlayers).filter((player) => player.room === room);
+      if (playersInRoom.length === 0) {
+        delete backEndRooms[room];
+        delete roomActivityTimers[room];
+        io.emit('updateRooms', backEndRooms);
+        console.log(`Pokój ${room} został usunięty z powodu nieaktywności.`);
+      }
+    }, 20000);
 
     console.log(backEndPlayers[socket.id]);
   });
 
-  // Rozłączenie gracza
   socket.on('disconnect', (reason) => {
     console.log(reason);
-    delete backEndPlayers[socket.id];
-    io.emit('updatePlayers', backEndPlayers);
+    const player = backEndPlayers[socket.id];
+    if (player) {
+      const room = player.room;
+      delete backEndPlayers[socket.id];
+      io.emit('updatePlayers', backEndPlayers);
+
+      const playersInRoom = Object.values(backEndPlayers).filter((p) => p.room === room);
+      if (playersInRoom.length === 0) {
+        if (roomActivityTimers[room]) {
+          clearTimeout(roomActivityTimers[room]);
+        }
+        roomActivityTimers[room] = setTimeout(() => {
+          delete backEndRooms[room];
+          delete roomActivityTimers[room];
+          io.emit('updateRooms', backEndRooms);
+          console.log(`Pokój ${room} został usunięty z powodu nieaktywności.`);
+        }, 20000);
+      }
+    }
   });
 
-  // Obsługa ruchu gracza
-  socket.on('keydown', ({ keycode, sequenceNumber }) => {
+  socket.on('keydown', ({ keycode, sequenceNumber, normalizedSpeed }) => {
     const backEndPlayer = backEndPlayers[socket.id];
 
     if (!backEndPlayer) return;
 
     backEndPlayer.sequenceNumber = sequenceNumber;
 
-    // Zapisz poprzednią pozycję
     const prevX = backEndPlayer.x;
     const prevY = backEndPlayer.y;
 
     switch (keycode) {
       case 'KeyW':
-        backEndPlayer.y -= SPEED;
+        backEndPlayer.y -= normalizedSpeed;
         break;
       case 'KeyA':
-        backEndPlayer.x -= SPEED;
+        backEndPlayer.x -= normalizedSpeed;
         break;
       case 'KeyS':
-        backEndPlayer.y += SPEED;
+        backEndPlayer.y += normalizedSpeed;
         break;
       case 'KeyD':
-        backEndPlayer.x += SPEED;
+        backEndPlayer.x += normalizedSpeed;
         break;
     }
 
-    // Sprawdź kolizję ze ścianami
     if (checkPlayerWallCollision(backEndPlayer, walls)) {
-      console.log("Kolizja gracza ze ścianą");
+      //console.log("Kolizja gracza ze ścianą");
       backEndPlayer.x = prevX;
       backEndPlayer.y = prevY;
     }
 
-    // Ograniczenia ruchu do granic canvas
     const playerSides = {
       left: backEndPlayer.x - backEndPlayer.radius,
       right: backEndPlayer.x + backEndPlayer.radius,
@@ -197,21 +240,27 @@ io.on('connection', (socket) => {
   });
 });
 
-// Backend ticker
 setInterval(() => {
-  // Aktualizacja pozycji pocisków
   for (const id in backEndProjectiles) {
     backEndProjectiles[id].x += backEndProjectiles[id].velocity.x;
     backEndProjectiles[id].y += backEndProjectiles[id].velocity.y;
 
-    // Sprawdź kolizję pocisku ze ścianami
-    if (checkProjectileWallCollision(backEndProjectiles[id], walls)) {
-      console.log(`Pocisk ${id} uderzył w ścianę`); // Debugowanie
+    // Sprawdź, czy pocisk wyleciał poza mapę
+    if (
+      backEndProjectiles[id].x < 0 ||
+      backEndProjectiles[id].x > WIDTH ||
+      backEndProjectiles[id].y < 0 ||
+      backEndProjectiles[id].y > HEIGHT
+    ) {
       delete backEndProjectiles[id];
       continue;
     }
 
-    // Sprawdź kolizję pocisku z graczami
+    if (checkProjectileWallCollision(backEndProjectiles[id], walls)) {
+      delete backEndProjectiles[id];
+      continue;
+    }
+
     for (const playerId in backEndPlayers) {
       if (backEndPlayers[playerId].room !== backEndProjectiles[id].room) continue;
 
@@ -224,25 +273,29 @@ setInterval(() => {
       if (DISTANCE < PROJECTILE_RADIUS + backEndPlayer.radius && backEndProjectiles[id].playerId !== playerId) {
         if (backEndPlayers[backEndProjectiles[id].playerId]) {
           backEndPlayer.health--;
-          backEndPlayers[backEndProjectiles[id].playerId].score++;
+          //hit sound
+          io.to(backEndProjectiles[id].playerId).emit('play_sound', { sound: 'hit' });
+          io.to(playerId).emit('play_sound', { sound: 'hit' });
         }
-        delete backEndProjectiles[id];
+
         if (backEndPlayer.health <= 0) {
-          if(Math.random() >= 0.5){
-            SpawnX = Math.random() * 150
-          }else
-          {
-            SpawnX = WIDTH - Math.random() * 150
+          backEndPlayers[backEndProjectiles[id].playerId].score++;
+          if (Math.random() >= 0.5) {
+            SpawnX = Math.random() * 150;
+          } else {
+            SpawnX = WIDTH - Math.random() * 150;
           }
-          backEndPlayer.x = SpawnX
+          backEndPlayer.x = SpawnX;
           backEndPlayer.y = HEIGHT * Math.random();
           backEndPlayer.health = BASE_HEALTH;
         }
+
+        delete backEndProjectiles[id];
         break;
       }
     }
   }
-
+  //console.log(backEndPlayers)
   io.emit('updateProjectiles', backEndProjectiles);
   io.emit('updatePlayers', backEndPlayers);
 }, 15);

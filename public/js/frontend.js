@@ -3,7 +3,6 @@ const c = canvas.getContext('2d');
 const WIDTH = 1336;
 const HEIGHT = 768;
 
-// Łączy nas z backendem
 const socket = io();
 
 const scoreEl = document.querySelector('#scoreEl');
@@ -18,17 +17,14 @@ c.scale(devicePixelRatio, devicePixelRatio);
 const x = canvas.width / 2;
 const y = canvas.height / 2;
 
-// Obiekt players w frontend
 const frontEndPlayers = {};
 const frontEndProjectiles = {};
-let walls = []; // Tablica przechowująca ściany
+let walls = [];
 
-// Odbieranie ścian z backendu
 socket.on('updateWalls', (backEndWalls) => {
   walls = backEndWalls;
 });
 
-// Odbieranie pocisków z backendu
 socket.on('updateProjectiles', (backEndProjectiles) => {
   for (const id in backEndProjectiles) {
     if (frontEndPlayers[socket.id]?.room !== backEndProjectiles[id]?.room) continue;
@@ -50,21 +46,18 @@ socket.on('updateProjectiles', (backEndProjectiles) => {
   }
 
   for (const frontEndProjectileID in frontEndProjectiles) {
-    // Jeżeli nie istnieje w backendzie, usuń z frontendu
     if (!backEndProjectiles[frontEndProjectileID]) {
       delete frontEndProjectiles[frontEndProjectileID];
     }
   }
 });
 
-// Odbieranie graczy z backendu
 socket.on('updatePlayers', (backEndPlayers) => {
   for (const id in backEndPlayers) {
     const backEndPlayer = backEndPlayers[id];
 
     if (backEndPlayers[socket.id]?.room !== backEndPlayers[id]?.room) continue;
 
-    // Jeżeli w frontend nie istnieje gracz z id z backend, dodaj nowego gracza
     if (!frontEndPlayers[id]) {
       frontEndPlayers[id] = new Player({
         x: backEndPlayer.x,
@@ -74,6 +67,8 @@ socket.on('updatePlayers', (backEndPlayers) => {
         username: backEndPlayer.username,
         room: backEndPlayer.room,
         health: backEndPlayer.health,
+        ammo: backEndPlayer.ammo,
+        maxAmmo: backEndPlayer.maxAmmo
       });
 
       document.querySelector('#playerLabels').innerHTML += `<div data-id="${id}" data-score="${backEndPlayer.score}">${backEndPlayer.username}: ${backEndPlayer.score}</div>`;
@@ -89,16 +84,15 @@ socket.on('updatePlayers', (backEndPlayers) => {
         return scoreB - scoreA;
       });
 
-      // Usuń stare elementy
       childDivs.forEach((div) => {
         parentDiv.removeChild(div);
       });
 
-      // Dodaj posortowane elementy
       childDivs.forEach((div) => {
         parentDiv.appendChild(div);
       });
-
+      //ammo hp update
+      frontEndPlayers[id].ammo = backEndPlayer.ammo;
       frontEndPlayers[id].health = backEndPlayer.health;
       frontEndPlayers[id].target = {
         x: backEndPlayer.x,
@@ -120,7 +114,6 @@ socket.on('updatePlayers', (backEndPlayers) => {
     }
   }
 
-  // Usuwanie graczy w frontend
   for (const id in frontEndPlayers) {
     if (!backEndPlayers[id]) {
       const divToDelete = document.querySelector(`div[data-id="${id}"]`);
@@ -149,49 +142,45 @@ let lastTime = 0;
 let animationId;
 
 function animate(time) {
-  const deltaTime = time - lastTime; // Różnica czasu od ostatniej klatki
+  const deltaTime = time - lastTime;
   lastTime = time;
-
   const normalizedSpeed = SPEED * (deltaTime / 16.67);
-
+  
   if (keys.w.pressed) {
     sequenceNumber++;
     playerInputs.push({ sequenceNumber, dx: 0, dy: -normalizedSpeed });
     frontEndPlayers[socket.id].y -= normalizedSpeed;
-    socket.emit('keydown', { keycode: 'KeyW', sequenceNumber });
+    socket.emit('keydown', { keycode: 'KeyW', sequenceNumber, normalizedSpeed });
   }
 
   if (keys.a.pressed) {
     sequenceNumber++;
     playerInputs.push({ sequenceNumber, dx: -normalizedSpeed, dy: 0 });
     frontEndPlayers[socket.id].x -= normalizedSpeed;
-    socket.emit('keydown', { keycode: 'KeyA', sequenceNumber });
+    socket.emit('keydown', { keycode: 'KeyA', sequenceNumber, normalizedSpeed });
   }
 
   if (keys.s.pressed) {
     sequenceNumber++;
     playerInputs.push({ sequenceNumber, dx: 0, dy: normalizedSpeed });
     frontEndPlayers[socket.id].y += normalizedSpeed;
-    socket.emit('keydown', { keycode: 'KeyS', sequenceNumber });
+    socket.emit('keydown', { keycode: 'KeyS', sequenceNumber, normalizedSpeed});
   }
 
   if (keys.d.pressed) {
     sequenceNumber++;
     playerInputs.push({ sequenceNumber, dx: normalizedSpeed, dy: 0 });
     frontEndPlayers[socket.id].x += normalizedSpeed;
-    socket.emit('keydown', { keycode: 'KeyD', sequenceNumber });
+    socket.emit('keydown', { keycode: 'KeyD', sequenceNumber, normalizedSpeed });
   }
 
-  // Czyszczenie canvas
   c.clearRect(0, 0, canvas.width, canvas.height);
 
-  // Rysowanie ścian
   walls.forEach((wall) => {
     c.fillStyle = 'gray';
     c.fillRect(wall.x, wall.y, wall.width, wall.height);
   });
 
-  // Rysowanie graczy
   for (const id in frontEndPlayers) {
     const frontEndPlayer = frontEndPlayers[id];
 
@@ -203,7 +192,6 @@ function animate(time) {
     frontEndPlayer.draw();
   }
 
-  // Rysowanie pocisków
   for (const id in frontEndProjectiles) {
     frontEndProjectiles[id].draw();
   }
@@ -251,7 +239,6 @@ window.addEventListener('keyup', (event) => {
   }
 });
 
-// Obsługa formularza "username"
 document.querySelector('#usernameForm').addEventListener('submit', (event) => {
   event.preventDefault();
 
@@ -270,42 +257,33 @@ document.querySelector('#usernameForm').addEventListener('submit', (event) => {
     return;
   }
 
-  // Ukrywanie całego overlay
   document.querySelector('.overlay').style.display = 'none';
 
   console.log(`Wybrany pokój: ${selectedRoom}`);
   console.log(`Gracz ${username} rozpoczął grę.`);
 
-  // Emitowanie zdarzenia initGame do serwera
   socket.emit('initGame', {
     username: username,
     room: selectedRoom,
-    width: window.innerWidth,
-    height: window.innerHeight,
-    devicePixelRatio: window.devicePixelRatio,
   });
 });
 
-// Tworzenie pokoi
-const frontEndRooms = {};
+let frontEndRooms = {};
 
-// Funkcja do aktualizacji listy rozwijanej
 function updateRoomSelect() {
   const roomSelect = document.querySelector('#roomSelect');
-
-  // Wyczyszczenie obecnych opcji
   roomSelect.innerHTML = '';
 
-  // Dodanie opcji z obiektu frontEndRooms
   for (const [key, value] of Object.entries(frontEndRooms)) {
     const option = document.createElement('option');
     option.value = key;
     option.textContent = value;
     roomSelect.appendChild(option);
   }
+
+  console.log('Zaktualizowano listę pokoi:', frontEndRooms);
 }
 
-// Dodanie event listenera do przycisku "Stwórz Pokój"
 document.querySelector('#createRoomButton').addEventListener('click', () => {
   const roomName = document.querySelector('#roomNameInput').value.trim();
 
@@ -314,19 +292,13 @@ document.querySelector('#createRoomButton').addEventListener('click', () => {
     return;
   }
 
-  // Wysłanie nazwy pokoju na backend
   socket.emit('addRoom', { roomName });
 
   console.log(`Żądanie utworzenia pokoju: ${roomName}`);
 });
 
-// Odbieranie zaktualizowanej listy pokoi z backendu
 socket.on('updateRooms', (backEndRooms) => {
-  // Aktualizacja frontEndRooms
-  Object.assign(frontEndRooms, backEndRooms);
-
-  // Aktualizacja listy rozwijanej
+  console.log('Otrzymano zaktualizowaną listę pokoi:', backEndRooms);
+  frontEndRooms = { ...backEndRooms };
   updateRoomSelect();
-
-  console.log('Zaktualizowana lista pokoi:', frontEndRooms);
 });

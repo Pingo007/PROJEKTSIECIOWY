@@ -1,5 +1,5 @@
 class Player {
-  constructor({x, y, radius, color, username, room, health}) {
+  constructor({x, y, radius, color, username, room, health, ammo, maxAmmo}) {
     this.x = x;
     this.y = y;
     this.radius = radius;
@@ -8,6 +8,8 @@ class Player {
     this.room = room;
     this.health = health;
     this.maxHealth = health; // Maksymalna wartość zdrowia
+    this.ammo = ammo; // Aktualna ilość amunicji
+    this.maxAmmo = maxAmmo; // Maksymalna ilość amunicji
   }
 
   draw() {
@@ -30,7 +32,7 @@ class Player {
     c.fillStyle = 'white';
     c.fillRect(
       this.x - this.radius - 1, 
-      this.y - this.radius - 12, 
+      this.y - this.radius - 18, 
       healthBarWidth + 2, 
       healthBarHeight + 2
     );
@@ -39,7 +41,7 @@ class Player {
     c.fillStyle = 'red';
     c.fillRect(
       this.x - this.radius, 
-      this.y - this.radius - 11, 
+      this.y - this.radius - 17, 
       healthBarWidth, 
       healthBarHeight
     );
@@ -48,9 +50,41 @@ class Player {
     c.fillStyle = 'hsl(90, 100%, 41%)';
     c.fillRect(
       this.x - this.radius, 
-      this.y - this.radius - 11, 
+      this.y - this.radius - 17, 
       healthBarWidth * healthPercentage, 
       healthBarHeight
+    );
+
+    // Pasek amunicji
+    const ammoBarWidth = this.radius * 2;
+    const ammoBarHeight = 6;
+    const ammoPercentage = this.ammo / this.maxAmmo;
+
+    // Biała ramka dla paska amunicji
+    c.fillStyle = 'white';
+    c.fillRect(
+      this.x - this.radius - 1, 
+      this.y - this.radius - ammoBarHeight - 3, // Pozycja pod paskiem zdrowia
+      ammoBarWidth + 2, 
+      ammoBarHeight + 2
+    );
+
+    // Tło paska amunicji (szare)
+    c.fillStyle = 'hsl(0, 0%, 80%)';
+    c.fillRect(
+      this.x - this.radius, 
+      this.y - this.radius - ammoBarHeight - 2, // Pozycja pod paskiem zdrowia
+      ammoBarWidth, 
+      ammoBarHeight
+    );
+
+    // Aktualna amunicja (ciemniejszy szary)
+    c.fillStyle = 'hsl(0, 0%, 35%)';
+    c.fillRect(
+      this.x - this.radius, 
+      this.y - this.radius - ammoBarHeight - 2, // Pozycja pod paskiem zdrowia
+      ammoBarWidth * ammoPercentage, 
+      ammoBarHeight
     );
   
     // Rysowanie gracza z efektem glow

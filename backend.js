@@ -367,9 +367,9 @@ setInterval(() => {
       backEndPlayers[id].health = BASE_HEALTH
       delete backEndMedkits[backEndPlayers[id].room]
       io.emit('updateMedkits',backEndMedkits)
-
+      const roomToGenerate = backEndPlayers[id].room
       setTimeout(()=>{
-        if(backEndPlayers[id].room) generateMedkit(backEndPlayers[id].room)
+        generateMedkit(roomToGenerate)
       },10000)
     }
   }

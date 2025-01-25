@@ -104,16 +104,6 @@ class Player {
     // Wyświetlenie litery "D" jeśli gracz może dashować
     if (this.canDash) {
       c.font = 'bold 18px sans-serif'; // Grubsza i większa czcionka
-      c.fillStyle = 'black'; // Kolor obramówki
-
-      // Rysowanie obramówki (czarny tekst przesunięty w różnych kierunkach)
-      const offset = 4; // Wielkość obramówki (możesz dostosować)
-      c.fillText('D', this.x + this.radius + 3 - offset, this.y - this.radius - ammoBarHeight + 5); // Lewo
-      c.fillText('D', this.x + this.radius + 3 + offset, this.y - this.radius - ammoBarHeight + 5); // Prawo
-      c.fillText('D', this.x + this.radius + 3, this.y - this.radius - ammoBarHeight + 5 - offset); // Góra
-      c.fillText('D', this.x + this.radius + 3, this.y - this.radius - ammoBarHeight + 5 + offset); // Dół
-
-      // Rysowanie głównego tekstu (biały)
       c.fillStyle = 'white';
       c.fillText(
         'D',

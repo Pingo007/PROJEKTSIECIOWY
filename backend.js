@@ -370,7 +370,7 @@ setInterval(() => {
 
       setTimeout(()=>{
         if(backEndPlayers[id].room) generateMedkit(backEndPlayers[id].room)
-      },1000)
+      },10000)
     }
   }
 

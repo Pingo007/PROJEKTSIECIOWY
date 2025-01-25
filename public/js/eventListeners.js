@@ -2,10 +2,12 @@
 const shootSound = document.getElementById('shootSound');
 const reloadSound = document.getElementById('reloadSound');
 const hitSound = document.getElementById('hitSound');
+const dashSound = document.getElementById('dashSound');
 
 // Ustaw głośność domyślną (np. 50%)
 shootSound.volume = 0.5; // 50% głośności
 reloadSound.volume = 0.5; // 50% głośności
+dashSound.volume = 0.5;
 hitSound.volume = 0.25;
 
 // Funkcja do odtwarzania dźwięku
@@ -19,6 +21,9 @@ function playSound(sound) {
   } else if (sound === 'hit') {
     hitSound.currentTime = 0; // Przewiń dźwięk do początku
     hitSound.play(); // Odtwórz dźwięk przeładowania
+  } else  if (sound === 'dash'){
+    dashSound.currentTime = 0; // Przewiń dźwięk do początku
+    dashSound.play(); // Odtwórz dźwięk przeładowania
   }
 }
 

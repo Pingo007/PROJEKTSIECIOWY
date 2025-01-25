@@ -50,6 +50,7 @@ const HEIGHT = 900 ;
 const SPEED = 5;
 const RADIUS = 25;
 const PROJECTILE_RADIUS = 6;
+const DASH_COOLDOWN = 8;
 let projectileId = 0;
 
 function checkPlayerWallCollision(player, walls) {
@@ -139,7 +140,7 @@ io.on('connection', (socket) => {
     }
 
     backEndPlayers[socket.id].canShoot = false
-    
+
     if(backEndPlayers[socket.id].ammo<=0 && backEndPlayers[socket.id].isReloading == false){ 
       //reload
       io.to(socket.id).emit('play_sound', { sound: 'reload' });
@@ -188,7 +189,8 @@ io.on('connection', (socket) => {
       ammo: MAX_AMMO,
       maxAmmo: MAX_AMMO,
       isReloading: false,
-      canShoot: true
+      canShoot: true,
+      canDash: true,
     };
     
     io.emit('updatePlayers', backEndPlayers)
@@ -233,6 +235,77 @@ io.on('connection', (socket) => {
       }
     }
   });
+
+  socket.on('dash', (keys)=>{
+    if(!backEndPlayers[socket.id].canDash) return
+
+    let direction = { x: 0, y: 0 };
+
+    if (keys.w.pressed) direction.y -= 1; // Góra
+    if (keys.s.pressed) direction.y += 1; // Dół
+    if (keys.a.pressed) direction.x -= 1; // Lewo
+    if (keys.d.pressed) direction.x += 1; // Prawo
+
+    // Normalizacja wektora kierunku
+    const length = Math.sqrt(direction.x * direction.x + direction.y * direction.y);
+    if (length > 0) {
+        direction.x /= length;
+        direction.y /= length;
+    }
+
+    if(length == 0) return
+
+    for(let dashAmount = 75; dashAmount > 0; dashAmount -= 1){
+      if(length == 1){
+        targetPosition = {  
+          x:backEndPlayers[socket.id].x + direction.x * dashAmount + direction.x*20,
+          y:backEndPlayers[socket.id].y + direction.y * dashAmount + direction.y*20,
+          radius:backEndPlayers[socket.id].radius
+        }
+      }else {
+        targetPosition = {  
+          x:backEndPlayers[socket.id].x + direction.x * dashAmount + Math.sign(direction.x)*20,
+          y:backEndPlayers[socket.id].y + direction.y * dashAmount + Math.sign(direction.y)*20,
+          radius:backEndPlayers[socket.id].radius
+        }
+      }
+      if(!checkPlayerWallCollision(targetPosition,walls)){
+        for(id in backEndPlayers){
+          if(backEndPlayers[id].room == backEndPlayers[socket.id].room){
+            io.to(id).emit('play_sound', { sound: 'dash' });
+          }
+        }
+        backEndPlayers[socket.id].x += direction.x * dashAmount/3;
+        backEndPlayers[socket.id].y += direction.y * dashAmount/3;
+        setTimeout(()=>{
+          backEndPlayers[socket.id].x += direction.x * dashAmount/3;
+          backEndPlayers[socket.id].y += direction.y * dashAmount/3
+        },30)
+        setTimeout(()=>{
+          backEndPlayers[socket.id].x += direction.x * dashAmount/3;
+          backEndPlayers[socket.id].y += direction.y * dashAmount/3
+        },60)
+
+        backEndPlayers[socket.id].canDash = false;
+
+        setTimeout(()=>{
+          backEndPlayers[socket.id].canDash = true;
+        },DASH_COOLDOWN*1000)
+        const playerSides = {
+          left: backEndPlayers[socket.id].x - backEndPlayers[socket.id].radius,
+          right: backEndPlayers[socket.id].x + backEndPlayers[socket.id].radius,
+          top: backEndPlayers[socket.id].y - backEndPlayers[socket.id].radius,
+          bottom: backEndPlayers[socket.id].y + backEndPlayers[socket.id].radius,
+        };
+    
+        if (playerSides.left < 0) backEndPlayers[socket.id].x = backEndPlayers[socket.id].radius;
+        if (playerSides.right > WIDTH) backEndPlayers[socket.id].x = WIDTH - backEndPlayers[socket.id].radius;
+        if (playerSides.top < 0) backEndPlayers[socket.id].y = backEndPlayers[socket.id].radius;
+        if (playerSides.bottom > HEIGHT) backEndPlayers[socket.id].y = HEIGHT - backEndPlayers[socket.id].radius;
+        break
+      }
+    }
+  })
 
   socket.on('keydown', ({ keycode, sequenceNumber, normalizedSpeed }) => {
     const backEndPlayer = backEndPlayers[socket.id];
@@ -297,7 +370,7 @@ setInterval(() => {
 
       setTimeout(()=>{
         if(backEndPlayers[id].room) generateMedkit(backEndPlayers[id].room)
-      },5000)
+      },1000)
     }
   }
 
@@ -334,6 +407,7 @@ setInterval(() => {
         if (backEndPlayers[backEndProjectiles[id].playerId]) {
           backEndPlayer.health--;
           //hit sound
+          //console.log('playing hit')
           io.to(backEndProjectiles[id].playerId).emit('play_sound', { sound: 'hit' });
           io.to(playerId).emit('play_sound', { sound: 'hit' });
         }
@@ -366,9 +440,14 @@ server.listen(port, () => {
 
 function generateMedkit(room){
   while(true){
-    randomX = 200 + Math.random() * (WIDTH - 400)
-    randomY = 200 + Math.random() * (HEIGHT - 400)
-    if(!checkPlayerWallCollision({randomX,randomY},walls)) break
+    medkitSpawn = {
+      x:randomX = 200 + Math.random() * (WIDTH - 400),
+      y:randomY = 200 + Math.random() * (HEIGHT - 400),
+      radius: 20
+    }
+    if(!checkPlayerWallCollision(medkitSpawn,walls)){
+      break
+    } 
   }
   backEndMedkits[room] = {
     x: randomX,

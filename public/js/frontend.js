@@ -96,7 +96,8 @@ socket.on('updatePlayers', (backEndPlayers) => {
         health: backEndPlayer.health,
         maxHealth: backEndPlayer.maxHealth,
         ammo: backEndPlayer.ammo,
-        maxAmmo: backEndPlayer.maxAmmo
+        maxAmmo: backEndPlayer.maxAmmo,
+        canDash: backEndPlayer.canDash
       });
 
       document.querySelector('#playerLabels').innerHTML += `<div data-id="${id}" data-score="${backEndPlayer.score}">${backEndPlayer.username}: ${backEndPlayer.score}</div>`;
@@ -120,6 +121,7 @@ socket.on('updatePlayers', (backEndPlayers) => {
         parentDiv.appendChild(div);
       });
       //ammo hp update
+      frontEndPlayers[id].canDash = backEndPlayer.canDash;
       frontEndPlayers[id].ammo = backEndPlayer.ammo;
       frontEndPlayers[id].health = backEndPlayer.health;
       frontEndPlayers[id].target = {
@@ -233,6 +235,7 @@ function animate(time) {
 
 animate();
 
+
 window.addEventListener('keydown', (event) => {
   if (!frontEndPlayers[socket.id]) return;
 
@@ -249,6 +252,9 @@ window.addEventListener('keydown', (event) => {
     case 'KeyD':
       keys.d.pressed = true;
       break;
+    case 'Space':
+      socket.emit('dash',(keys))
+      break;  
   }
 });
 

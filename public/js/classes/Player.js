@@ -1,5 +1,5 @@
 class Player {
-  constructor({x, y, radius, color, username, room, health, ammo, maxAmmo}) {
+  constructor({x, y, radius, color, username, room, health, ammo, maxAmmo, canDash = false}) {
     this.x = x;
     this.y = y;
     this.radius = radius;
@@ -10,6 +10,7 @@ class Player {
     this.maxHealth = health; // Maksymalna wartość zdrowia
     this.ammo = ammo; // Aktualna ilość amunicji
     this.maxAmmo = maxAmmo; // Maksymalna ilość amunicji
+    this.canDash = canDash; // Czy gracz może dashować
   }
 
   draw() {
@@ -86,6 +87,8 @@ class Player {
       ammoBarWidth * ammoPercentage, 
       ammoBarHeight
     );
+
+    
   
     // Rysowanie gracza z efektem glow
     c.save();
@@ -96,5 +99,27 @@ class Player {
     c.fillStyle = this.color;
     c.fill();
     c.restore();
+
+    // Wyświetlenie litery "D" jeśli gracz może dashować
+    // Wyświetlenie litery "D" jeśli gracz może dashować
+    if (this.canDash) {
+      c.font = 'bold 18px sans-serif'; // Grubsza i większa czcionka
+      c.fillStyle = 'black'; // Kolor obramówki
+
+      // Rysowanie obramówki (czarny tekst przesunięty w różnych kierunkach)
+      const offset = 4; // Wielkość obramówki (możesz dostosować)
+      c.fillText('D', this.x + this.radius + 3 - offset, this.y - this.radius - ammoBarHeight + 5); // Lewo
+      c.fillText('D', this.x + this.radius + 3 + offset, this.y - this.radius - ammoBarHeight + 5); // Prawo
+      c.fillText('D', this.x + this.radius + 3, this.y - this.radius - ammoBarHeight + 5 - offset); // Góra
+      c.fillText('D', this.x + this.radius + 3, this.y - this.radius - ammoBarHeight + 5 + offset); // Dół
+
+      // Rysowanie głównego tekstu (biały)
+      c.fillStyle = 'white';
+      c.fillText(
+        'D',
+        this.x + this.radius -10 , // Pozycja po prawej stronie gracza
+        this.y - this.radius - ammoBarHeight +20 // Pozycja pod paskiem amunicji
+      );
+    }
   }  
 }

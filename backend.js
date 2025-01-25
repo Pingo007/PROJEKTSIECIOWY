@@ -135,7 +135,9 @@ io.on('connection', (socket) => {
       backEndPlayers[socket.id].ammo--
 
       setTimeout(()=>{
-        backEndPlayers[socket.id]?.canShoot = true;
+        if(backEndPlayers[socket.id]){
+          backEndPlayers[socket.id].canShoot = true;
+        }
       },90)
     }
 

@@ -135,7 +135,7 @@ io.on('connection', (socket) => {
       backEndPlayers[socket.id].ammo--
 
       setTimeout(()=>{
-        backEndPlayers[socket.id].canShoot = true;
+        backEndPlayers[socket.id]?.canShoot = true;
       },90)
     }
 
@@ -145,9 +145,11 @@ io.on('connection', (socket) => {
       //reload
       io.to(socket.id).emit('play_sound', { sound: 'reload' });
       setTimeout(() => {
-        backEndPlayers[socket.id].ammo = MAX_AMMO; // Przeładuj amunicję
-        backEndPlayers[socket.id].isReloading = false;
-        backEndPlayers[socket.id].canShoot = true;
+        if(backEndPlayers[socket.id]){
+          backEndPlayers[socket.id].ammo = MAX_AMMO; // Przeładuj amunicję
+          backEndPlayers[socket.id].isReloading = false;
+          backEndPlayers[socket.id].canShoot = true;
+        }
       }, 500); // 500 milisekund = 0.5 sekundy
 
       backEndPlayers[socket.id].isReloading = true;

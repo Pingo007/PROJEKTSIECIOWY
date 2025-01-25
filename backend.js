@@ -50,7 +50,7 @@ const HEIGHT = 900 ;
 const SPEED = 5;
 const RADIUS = 25;
 const PROJECTILE_RADIUS = 6;
-const DASH_COOLDOWN = 8;
+const DASH_COOLDOWN = 5;
 let projectileId = 0;
 
 function checkPlayerWallCollision(player, walls) {
@@ -289,7 +289,7 @@ io.on('connection', (socket) => {
         backEndPlayers[socket.id].canDash = false;
 
         setTimeout(()=>{
-          backEndPlayers[socket.id].canDash = true;
+          if(backEndPlayers[socket.id]) backEndPlayers[socket.id].canDash = true;
         },DASH_COOLDOWN*1000)
         const playerSides = {
           left: backEndPlayers[socket.id].x - backEndPlayers[socket.id].radius,
